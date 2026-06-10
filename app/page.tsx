@@ -4,6 +4,102 @@ import { useEffect, useState } from 'react';
 import NicknameModal from '@/components/NicknameModal';
 import GameCard from '@/components/GameCard';
 import { getPlayCount } from '@/lib/logger';
+import Link from 'next/link';
+
+function CalendarWidget() {
+  const [today] = useState(() => new Date());
+  
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const todayDate = today.getDate();
+
+  const monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const dayNames = ['일','월','화','수','목','금','토'];
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const events = [
+    { date: '12/13', title: '전사 워크샵 참가 후기 작성 마감', href: '/notices/1' },
+    { date: '12/18', title: '신규 도구 베타테스터 모집 공고', href: '/notices/2' },
+    { date: '12/23', title: '2024 연말 행사 참여 신청', href: '/notices/3' },
+  ];
+
+  return (
+    <div className="bg-white border border-gray-300 shadow-sm">
+      <div className="bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center justify-between">
+        <h4 className="text-xs font-bold text-gray-700">📅 팀 캘린더</h4>
+        <span className="text-xs text-gray-500">{year}년 {monthNames[month]}</span>
+      </div>
+      <div className="px-3 pt-2 pb-1">
+        {/* Day headers */}
+        <div className="grid grid-cols-7 mb-1">
+          {dayNames.map((d, i) => (
+            <div key={d} className={`text-center font-medium pb-0.5 ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-600' : 'text-gray-500'}`} style={{ fontSize: 10 }}>
+              {d}
+            </div>
+          ))}
+        </div>
+        {/* Date cells */}
+        {Array.from({ length: cells.length / 7 }, (_, week) => (
+          <div key={week} className="grid grid-cols-7">
+            {cells.slice(week * 7, week * 7 + 7).map((d, i) => {
+              const isToday = d === todayDate;
+              const hasEvent = d !== null && events.some(e => {
+                const [em, ed] = e.date.split('/').map(Number);
+                return em === month + 1 && ed === d;
+              });
+              return (
+                <div
+                  key={i}
+                  className={`flex flex-col items-center py-0.5 rounded ${isToday ? 'bg-blue-600 text-white' : d ? 'hover:bg-gray-100 cursor-default' : ''}`}
+                >
+                  {d !== null && (
+                    <>
+                      <span
+                        className={`leading-none ${isToday ? 'text-white font-bold' : i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-600' : 'text-gray-700'}`}
+                        style={{ fontSize: 10 }}
+                      >
+                        {d}
+                      </span>
+                      {hasEvent && (
+                        <div className={`w-1 h-1 rounded-full mt-0.5 ${isToday ? 'bg-white' : 'bg-blue-500'}`} />
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      {/* Events list */}
+      <div className="border-t border-gray-100 px-3 py-2">
+        <div className="text-gray-500 font-medium mb-1.5" style={{ fontSize: 10 }}>예정된 일정</div>
+        <div className="space-y-1">
+          {events.map((ev, i) => (
+            <Link
+              key={i}
+              href={ev.href}
+              className="flex items-start gap-1.5 hover:bg-blue-50 rounded px-1 py-0.5 group"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1 flex-shrink-0" />
+              <div>
+                <span className="text-blue-700 font-medium group-hover:underline" style={{ fontSize: 10 }}>[{ev.date}]</span>
+                <span className="text-gray-600 ml-1 group-hover:text-blue-600" style={{ fontSize: 10 }}>{ev.title}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function IntranetHub() {
   const [nickname, setNickname] = useState<string | null>(null);
@@ -118,7 +214,6 @@ export default function IntranetHub() {
       {/* Top Navigation */}
       <header className="bg-blue-900 text-white shadow-md">
         <div className="flex items-center justify-between px-4 py-0 h-10 border-b border-blue-700">
-          {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="bg-yellow-400 text-blue-900 font-black text-xs px-2 py-1 tracking-wider">
               ACME
@@ -128,7 +223,6 @@ export default function IntranetHub() {
             </span>
           </div>
 
-          {/* Nav links */}
           <nav className="hidden md:flex items-center gap-1 text-xs">
             {['홈', '공지사항', '전자결재', '인사정보', '복리후생', '고객지원'].map((item) => (
               <button
@@ -140,12 +234,9 @@ export default function IntranetHub() {
             ))}
           </nav>
 
-          {/* User info */}
           <div className="flex items-center gap-3 text-xs">
             {nickname && (
-              <span className="opacity-80">
-                👤 {nickname} 님
-              </span>
+              <span className="opacity-80">👤 {nickname} 님</span>
             )}
             <button
               className="opacity-60 hover:opacity-100 transition-opacity"
@@ -160,7 +251,6 @@ export default function IntranetHub() {
           </div>
         </div>
 
-        {/* Sub navigation */}
         <div className="flex items-center gap-1 px-4 py-1 bg-blue-800 text-xs">
           <span className="opacity-60">현재 위치:</span>
           <span className="opacity-80">홈</span>
@@ -174,9 +264,7 @@ export default function IntranetHub() {
         {/* Welcome banner */}
         <div className="bg-white border border-gray-300 mb-4 shadow-sm">
           <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-blue-900">
-              📋 업무 도구 현황판
-            </h2>
+            <h2 className="text-sm font-bold text-blue-900">📋 업무 도구 현황판</h2>
             <span className="text-xs text-gray-500 font-mono">{currentTime}</span>
           </div>
           <div className="px-4 py-3">
@@ -233,8 +321,8 @@ export default function IntranetHub() {
           </div>
         </div>
 
-        {/* Bottom info */}
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Bottom info — 3 columns */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Announcements */}
           <div className="bg-white border border-gray-300 shadow-sm">
             <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
@@ -279,6 +367,9 @@ export default function IntranetHub() {
               ))}
             </div>
           </div>
+
+          {/* Calendar widget */}
+          <CalendarWidget />
         </div>
       </main>
 
