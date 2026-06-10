@@ -6,3 +6,4 @@ out/
 build/
 dist/
 *.log
+.claude/worktrees/
