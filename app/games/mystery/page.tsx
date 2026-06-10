@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { logGameEvent } from '@/lib/logger';
+import { supabase } from '@/lib/supabase';
 
 // Story data
 type Choice = {
@@ -11,6 +12,7 @@ type Choice = {
   description: string;
   nextScene: string;
   reveal?: string;
+  requiresTool?: string;
 };
 
 type Scene = {
@@ -20,12 +22,15 @@ type Scene = {
   content: string[];
   choices: Choice[];
   isEnding?: boolean;
+  requiresTool?: string;
 };
+
+const ENDING_SCENE_IDS = ['ending_correct', 'ending_wrong_felix', 'ending_wrong_nora'];
 
 const STORY: Scene[] = [
   {
     id: 'start',
-    file: 'README.md',
+    file: 'incident_report.ts',
     title: '// Case File: The Dead Dev',
     content: [
       '/*',
@@ -73,7 +78,7 @@ const STORY: Scene[] = [
       '  // Items found at the scene:',
       '  items: [',
       '    "Victim\'s keycard — still inserted in rack slot B-12",',
-      '    "Shattered coffee mug (PROPERTY OF: F.G.)",', // Felix Grant's mug
+      '    "Shattered coffee mug (PROPERTY OF: F.G.)",',
       '    "USB drive — encrypted, labeled \'BACKUP_2019\'",',
       '    "A printed email thread — corners torn off",',
       '  ],',
@@ -93,7 +98,7 @@ const STORY: Scene[] = [
     choices: [
       { id: 'c1', label: 'analyzeUSB()', description: 'Decrypt the USB drive', nextScene: 'scene_usb' },
       { id: 'c2', label: 'callFelix()', description: 'Ask Felix about his mug', nextScene: 'interview_felix' },
-      { id: 'c3', label: 'callNora()', description: 'Talk to Nora about keycard access', nextScene: 'interview_nora' },
+      { id: 'c3', label: 'callNora()', description: 'Talk to Nora about keycard access', nextScene: 'interview_nora', requiresTool: 'KEYCARD_DATA' },
     ],
   },
   {
@@ -125,6 +130,8 @@ const STORY: Scene[] = [
       '// That someone used "noreply@nexus.corp" — a bot account.',
       '// Only repo admins can create bot commits.',
       '// Repo admins: Diana Cho (PM), Victor Harmon (deceased)',
+      '',
+      '// CLUE: Bot commit timestamp -> 22:58',
     ],
     choices: [
       { id: 'c1', label: 'callDiana()', description: 'Confront Diana about the commits', nextScene: 'interview_diana' },
@@ -166,7 +173,7 @@ const STORY: Scene[] = [
     ],
     choices: [
       { id: 'c1', label: 'callFelix()', description: 'Check on Felix — there\'s that mug...', nextScene: 'interview_felix' },
-      { id: 'c2', label: 'callNora()', description: 'Ask Nora if she let someone in', nextScene: 'interview_nora' },
+      { id: 'c2', label: 'callNora()', description: 'Ask Nora if she let someone in', nextScene: 'interview_nora', requiresTool: 'KEYCARD_DATA' },
       { id: 'c3', label: 'readCommitLog()', description: 'Re-examine the git history', nextScene: 'scene_git' },
     ],
   },
@@ -206,7 +213,7 @@ const STORY: Scene[] = [
     ],
     choices: [
       { id: 'c1', label: 'pressFelix()', description: 'Press Felix for more details', nextScene: 'scene_usb' },
-      { id: 'c2', label: 'callNora()', description: 'Ask Nora about the door lock', nextScene: 'interview_nora' },
+      { id: 'c2', label: 'callNora()', description: 'Ask Nora about the door lock', nextScene: 'interview_nora', requiresTool: 'KEYCARD_DATA' },
       { id: 'c3', label: 'traceNoreplyAccount()', description: 'Follow the digital trail', nextScene: 'scene_trace' },
     ],
   },
@@ -214,6 +221,7 @@ const STORY: Scene[] = [
     id: 'interview_nora',
     file: 'interview_nora.txt',
     title: '// Interview: Nora Stein — DevOps Lead',
+    requiresTool: 'KEYCARD_DATA',
     content: [
       '// TRANSCRIPT — Nora Stein, 2024-12-10 00:10',
       '',
@@ -256,7 +264,7 @@ const STORY: Scene[] = [
     file: 'usb_contents.bin',
     title: '// USB Drive — Decrypted Contents',
     content: [
-      '// File: usb_contents — Decryption successful',
+      '// File: usb_contents — Attempting decryption...',
       '// Password cracked via: rockyou.txt wordlist',
       '',
       'const usbContents = [',
@@ -283,7 +291,7 @@ const STORY: Scene[] = [
       '// Diana planned this hours before it happened.',
     ],
     choices: [
-      { id: 'c1', label: 'callNora()', description: 'Share findings with Nora', nextScene: 'interview_nora' },
+      { id: 'c1', label: 'callNora()', description: 'Share findings with Nora', nextScene: 'interview_nora', requiresTool: 'KEYCARD_DATA' },
       { id: 'c2', label: 'accuseDiana()', description: 'Enough evidence — accuse Diana', nextScene: 'ending_correct', reveal: 'diana' },
       { id: 'c3', label: 'callDiana()', description: 'Confront Diana with the USB', nextScene: 'interview_diana' },
     ],
@@ -320,7 +328,7 @@ const STORY: Scene[] = [
       '// The perfect alibi — except for the digital fingerprints.',
     ],
     choices: [
-      { id: 'c1', label: 'callNora()', description: 'Get the full picture on the lock', nextScene: 'interview_nora' },
+      { id: 'c1', label: 'callNora()', description: 'Get the full picture on the lock', nextScene: 'interview_nora', requiresTool: 'KEYCARD_DATA' },
       { id: 'c2', label: 'accuseDiana()', description: 'You have enough. Make the call.', nextScene: 'ending_correct', reveal: 'diana' },
       { id: 'c3', label: 'callFelix()', description: 'Warn Felix that he was used', nextScene: 'interview_felix' },
     ],
@@ -369,7 +377,7 @@ const STORY: Scene[] = [
   },
   {
     id: 'ending_wrong_felix',
-    file: 'CASE_CLOSED.md',
+    file: 'CASE_CLOSED_WRONG.md',
     title: '// CASE CLOSED — Wrong',
     isEnding: true,
     content: [
@@ -403,7 +411,7 @@ const STORY: Scene[] = [
   },
   {
     id: 'ending_wrong_nora',
-    file: 'CASE_CLOSED.md',
+    file: 'CASE_CLOSED_WRONG.md',
     title: '// CASE CLOSED — Wrong',
     isEnding: true,
     content: [
@@ -440,6 +448,19 @@ function getScene(id: string): Scene {
   return STORY.find(s => s.id === id) || STORY[0];
 }
 
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+type RankingEntry = {
+  id: string;
+  nickname: string;
+  time_seconds: number;
+  created_at: string;
+};
+
 export default function MysteryPage() {
   const [currentScene, setCurrentScene] = useState<Scene>(getScene('start'));
   const [history, setHistory] = useState<string[]>(['start']);
@@ -449,8 +470,35 @@ export default function MysteryPage() {
     '> Loading case file...',
     '> Type a function name to proceed.',
   ]);
-  const [openFiles, setOpenFiles] = useState<string[]>(['README.md']);
+  const [openFiles, setOpenFiles] = useState<string[]>(['incident_report.ts']);
   const terminalRef = useRef<HTMLDivElement>(null);
+
+  // Timer
+  const [timerStarted, setTimerStarted] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [timerStopped, setTimerStopped] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Inventory
+  const [inventory, setInventory] = useState<Set<string>>(new Set());
+
+  // USB mini-puzzle state
+  const [usbPinInput, setUsbPinInput] = useState('');
+  const [usbUnlocked, setUsbUnlocked] = useState(false);
+  const [usbPinError, setUsbPinError] = useState(false);
+  const [usbPinSuccess, setUsbPinSuccess] = useState(false);
+
+  // Lab mini-puzzle state
+  const [labCountInput, setLabCountInput] = useState('');
+  const [labUnlocked, setLabUnlocked] = useState(false);
+  const [labCountError, setLabCountError] = useState(false);
+
+  // Ranking modal state
+  const [showRankingModal, setShowRankingModal] = useState(false);
+  const [rankingNickname, setRankingNickname] = useState('');
+  const [rankings, setRankings] = useState<RankingEntry[]>([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [finalTime, setFinalTime] = useState(0);
 
   useEffect(() => { logGameEvent('mystery', 'enter'); }, []);
   useEffect(() => () => { logGameEvent('mystery', 'exit'); }, []);
@@ -461,11 +509,70 @@ export default function MysteryPage() {
     }
   }, [terminalLines]);
 
+  // Timer logic
+  useEffect(() => {
+    if (timerStarted && !timerStopped) {
+      timerRef.current = setInterval(() => {
+        setTimerSeconds(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [timerStarted, timerStopped]);
+
+  // Load nickname from localStorage
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('acme_nickname') || '' : '';
+    setRankingNickname(saved);
+  }, []);
+
+  const fetchRankings = useCallback(async () => {
+    try {
+      const { data } = await supabase
+        .from('mystery_rankings')
+        .select('*')
+        .order('time_seconds', { ascending: true })
+        .limit(10);
+      if (data) setRankings(data as RankingEntry[]);
+    } catch {
+      // silently fail
+    }
+  }, []);
+
+  const saveRanking = async () => {
+    try {
+      await supabase.from('mystery_rankings').insert({
+        nickname: rankingNickname || 'anonymous',
+        time_seconds: finalTime,
+      });
+      await fetchRankings();
+      setShowLeaderboard(true);
+    } catch {
+      setShowLeaderboard(true);
+    }
+  };
+
   const navigate = (scene: Scene, choice: Choice) => {
+    // Tool check
+    if (choice.requiresTool && !inventory.has(choice.requiresTool)) {
+      setTerminalLines(prev => [
+        ...prev,
+        `> ${choice.label}`,
+        `  // Access denied: ${choice.requiresTool} required. Examine the crime scene first.`,
+      ]);
+      return;
+    }
+
+    // Start timer on first choice
+    if (!timerStarted) {
+      setTimerStarted(true);
+    }
+
     const nextScene = getScene(choice.nextScene);
     setCurrentScene(nextScene);
     setHistory(prev => [...prev, nextScene.id]);
-    if (!openFiles.includes(nextScene.file)) {
+    if (!openFiles.includes(nextScene.file) && !ENDING_SCENE_IDS.includes(nextScene.id)) {
       setOpenFiles(prev => [...prev, nextScene.file]);
     }
     setTerminalLines(prev => [
@@ -480,14 +587,89 @@ export default function MysteryPage() {
       if (nextScene.id === 'ending_correct') {
         logGameEvent('mystery', 'complete');
         setTerminalLines(prev => [...prev, '> CASE SOLVED. Excellent detective work.']);
+        setTimerStopped(true);
+        if (timerRef.current) clearInterval(timerRef.current);
+        setFinalTime(timerSeconds);
+        setTimeout(() => setShowRankingModal(true), 800);
       } else {
         setTerminalLines(prev => [...prev, '> INCORRECT VERDICT. The case remains open.']);
       }
     }
   };
 
+  const handleUsbPinDigit = (digit: string) => {
+    if (usbPinInput.length < 4) {
+      setUsbPinInput(prev => prev + digit);
+      setUsbPinError(false);
+    }
+  };
+
+  const handleUsbPinClear = () => {
+    setUsbPinInput('');
+    setUsbPinError(false);
+  };
+
+  const handleUsbPinSubmit = () => {
+    if (usbPinInput === '2258') {
+      setUsbUnlocked(true);
+      setUsbPinSuccess(true);
+      setInventory(prev => new Set([...prev, 'USB_KEY']));
+      setTerminalLines(prev => [
+        ...prev,
+        '> analyzeUSB() — PIN correct',
+        '  // USB decrypted. Tool acquired: USB_KEY',
+      ]);
+    } else {
+      setUsbPinError(true);
+      setUsbPinInput('');
+    }
+  };
+
+  const handleLabCountSubmit = () => {
+    if (labCountInput === '3') {
+      setLabUnlocked(true);
+      setInventory(prev => new Set([...prev, 'KEYCARD_DATA']));
+      setTerminalLines(prev => [
+        ...prev,
+        '> examineKeycards() — count correct',
+        '  // Keycard data acquired. Tool acquired: KEYCARD_DATA',
+      ]);
+    } else {
+      setLabCountError(true);
+      setTimeout(() => setLabCountError(false), 1500);
+    }
+  };
+
   const isCorrectEnding = currentScene.id === 'ending_correct';
-  const isWrongEnding = currentScene.id.startsWith('ending_wrong');
+
+  // Sidebar: only show visited scenes that are not endings
+  const sidebarScenes = STORY.filter(
+    s => history.includes(s.id) && !ENDING_SCENE_IDS.includes(s.id)
+  );
+
+  const resetGame = () => {
+    setCurrentScene(getScene('start'));
+    setHistory(['start']);
+    setOpenFiles(['incident_report.ts']);
+    setTerminalLines([
+      '> Restarting investigation...',
+      '> Case file reloaded.',
+    ]);
+    setTimerStarted(false);
+    setTimerSeconds(0);
+    setTimerStopped(false);
+    setInventory(new Set());
+    setUsbPinInput('');
+    setUsbUnlocked(false);
+    setUsbPinError(false);
+    setUsbPinSuccess(false);
+    setLabCountInput('');
+    setLabUnlocked(false);
+    setLabCountError(false);
+    setShowRankingModal(false);
+    setShowLeaderboard(false);
+    setFinalTime(0);
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col text-xs font-mono overflow-hidden">
@@ -504,7 +686,7 @@ export default function MysteryPage() {
           </span>
         </div>
         <Link href="/" className="text-gray-400 hover:text-white text-xs">
-          ← 업무 포털로
+          &larr; 업무 포털로
         </Link>
       </div>
 
@@ -528,33 +710,38 @@ export default function MysteryPage() {
         </div>
 
         {/* File Explorer Sidebar */}
-        <div className="w-48 bg-gray-850 border-r border-gray-700 overflow-y-auto bg-gray-900">
+        <div className="w-48 bg-gray-850 border-r border-gray-700 overflow-y-auto bg-gray-900 flex flex-col">
           <div className="px-3 py-2 text-gray-400 uppercase tracking-widest text-xs font-bold">
             Explorer
           </div>
-          <div className="px-2">
+          <div className="px-2 flex-1">
             <div className="text-gray-300 flex items-center gap-1 py-0.5 cursor-pointer hover:bg-gray-700 px-1">
               <span>▾</span>
               <span className="text-yellow-400">📁 NEXUS_CASE_FILES</span>
             </div>
-            {STORY.map(scene => (
+            {sidebarScenes.map(scene => (
               <button
                 key={scene.id}
-                onClick={() => {
-                  setCurrentScene(scene);
-                  if (!openFiles.includes(scene.file)) {
-                    setOpenFiles(prev => [...prev, scene.file]);
-                  }
-                }}
+                onClick={() => setCurrentScene(scene)}
                 className={`
                   w-full text-left pl-6 py-0.5 flex items-center gap-1 hover:bg-gray-700
-                  ${history.includes(scene.id) ? 'text-gray-300' : 'text-gray-500'}
+                  text-gray-300
                   ${currentScene.id === scene.id ? 'bg-gray-700 text-white' : ''}
                 `}
               >
                 <span className="text-blue-400">📄</span>
                 <span className="truncate">{scene.file}</span>
               </button>
+            ))}
+          </div>
+
+          {/* Inventory Panel */}
+          <div className="border-t border-gray-700 px-3 py-2">
+            <div className="text-gray-500 text-xs mb-1">// INVENTORY</div>
+            {['USB_KEY', 'KEYCARD_DATA'].map(tool => (
+              <div key={tool} className={`text-xs py-0.5 ${inventory.has(tool) ? 'text-green-400' : 'text-gray-600'}`}>
+                [{inventory.has(tool) ? '✓' : ' '}] {tool}
+              </div>
             ))}
           </div>
         </div>
@@ -583,12 +770,88 @@ export default function MysteryPage() {
 
           {/* Editor */}
           <div className="flex-1 overflow-y-auto bg-gray-900 p-4">
-            {/* Line numbers + code */}
             <div>
               <div className="text-purple-400 text-xs mb-4 opacity-70">
                 // {currentScene.title}
               </div>
-              {currentScene.content.map((line, i) => (
+
+              {/* USB mini-puzzle */}
+              {currentScene.id === 'scene_usb' && !usbUnlocked && (
+                <div className="mb-6 border border-yellow-600 bg-gray-800 p-4">
+                  <div className="text-yellow-400 mb-3">// USB encrypted. Enter 4-digit PIN:</div>
+                  <div className="mb-2">
+                    {currentScene.content.slice(0, 3).map((line, i) => (
+                      <div key={i} className="flex">
+                        <span className="w-8 text-right pr-3 text-gray-600 select-none flex-shrink-0">{i + 1}</span>
+                        <pre className="text-xs leading-5 text-gray-400">{line}</pre>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-gray-600 mb-3">// [ENCRYPTED — PIN required]</div>
+                  <div className="flex gap-2 mb-3">
+                    {[0, 1, 2, 3].map(i => (
+                      <div key={i} className={`w-8 h-8 border flex items-center justify-center text-sm font-bold
+                        ${usbPinError ? 'border-red-500 text-red-400' : 'border-gray-600 text-white'}`}>
+                        {usbPinInput[i] || '_'}
+                      </div>
+                    ))}
+                  </div>
+                  {usbPinError && (
+                    <div className="text-red-400 text-xs mb-2">// Error: Access denied. Wrong PIN.</div>
+                  )}
+                  <div className="grid grid-cols-3 gap-1 w-28 mb-2">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => (
+                      <button
+                        key={d}
+                        onClick={() => handleUsbPinDigit(String(d))}
+                        className="w-8 h-8 border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white text-xs"
+                      >
+                        {d}
+                      </button>
+                    ))}
+                    <button onClick={handleUsbPinClear} className="w-8 h-8 border border-gray-600 text-gray-500 hover:bg-gray-700 text-xs">CLR</button>
+                    <button onClick={() => handleUsbPinDigit('0')} className="w-8 h-8 border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white text-xs">0</button>
+                    <button
+                      onClick={handleUsbPinSubmit}
+                      disabled={usbPinInput.length !== 4}
+                      className="w-8 h-8 border border-blue-600 text-blue-400 hover:bg-blue-900 disabled:opacity-30 text-xs"
+                    >OK</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Lab mini-puzzle */}
+              {currentScene.id === 'scene_lab' && !labUnlocked && (
+                <div className="mb-6 border border-yellow-600 bg-gray-800 p-4">
+                  <div className="text-yellow-400 mb-2">// Keycard scanner damaged.</div>
+                  <div className="text-yellow-400 mb-3">// Count the items with keycard access:</div>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="number"
+                      value={labCountInput}
+                      onChange={e => { setLabCountInput(e.target.value); setLabCountError(false); }}
+                      className={`w-16 bg-gray-900 border text-white text-xs p-1 ${labCountError ? 'border-red-500' : 'border-gray-600'}`}
+                      placeholder="?"
+                      onKeyDown={e => e.key === 'Enter' && handleLabCountSubmit()}
+                    />
+                    <button onClick={handleLabCountSubmit} className="px-3 py-1 border border-blue-600 text-blue-400 hover:bg-blue-900 text-xs">
+                      Submit
+                    </button>
+                    {labCountError && <span className="text-red-400 text-xs">// Incorrect</span>}
+                  </div>
+                </div>
+              )}
+
+              {currentScene.id === 'scene_lab' && labUnlocked && (
+                <div className="mb-4 text-green-400 text-xs">// Keycard data recorded. Tool acquired: KEYCARD_DATA</div>
+              )}
+
+              {currentScene.id === 'scene_usb' && usbPinSuccess && (
+                <div className="mb-4 text-green-400 text-xs">// USB decrypted. Tool acquired: USB_KEY</div>
+              )}
+
+              {/* Scene content - for USB only show if unlocked */}
+              {(currentScene.id !== 'scene_usb' || usbUnlocked) && currentScene.content.map((line, i) => (
                 <div key={i} className="flex">
                   <span className="w-8 text-right pr-3 text-gray-600 select-none flex-shrink-0">
                     {i + 1}
@@ -611,50 +874,43 @@ export default function MysteryPage() {
               <div className="mt-6 border-t border-gray-700 pt-4">
                 <div className="text-gray-500 mb-3">// What do you do next?</div>
                 <div className="space-y-2">
-                  {currentScene.choices.map(choice => (
-                    <button
-                      key={choice.id}
-                      onClick={() => navigate(currentScene, choice)}
-                      className="w-full text-left group"
-                    >
-                      <div className="flex items-start gap-2 px-3 py-2 border border-gray-700 hover:border-blue-500 hover:bg-gray-800 transition-colors">
-                        <span className="text-yellow-400 mt-0.5">▶</span>
-                        <div>
-                          <span className="text-blue-400 group-hover:text-blue-300">{choice.label}</span>
-                          <span className="text-gray-400 ml-2">// {choice.description}</span>
+                  {currentScene.choices.map(choice => {
+                    const locked = !!(choice.requiresTool && !inventory.has(choice.requiresTool));
+                    return (
+                      <button
+                        key={choice.id}
+                        onClick={() => navigate(currentScene, choice)}
+                        className="w-full text-left group"
+                      >
+                        <div className={`flex items-start gap-2 px-3 py-2 border transition-colors
+                          ${locked ? 'border-gray-700 opacity-50' : 'border-gray-700 hover:border-blue-500 hover:bg-gray-800'}`}>
+                          <span className={`mt-0.5 ${locked ? 'text-gray-600' : 'text-yellow-400'}`}>▶</span>
+                          <div>
+                            <span className={locked ? 'text-gray-600' : 'text-blue-400 group-hover:text-blue-300'}>{choice.label}</span>
+                            <span className="text-gray-400 ml-2">// {choice.description}</span>
+                            {locked && (
+                              <span className="text-red-500 ml-2">// requires: {choice.requiresTool}</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* Restart button for endings */}
+            {/* Ending actions */}
             {currentScene.isEnding && (
               <div className="mt-6 border-t border-gray-700 pt-4">
                 <div className={`text-sm font-bold mb-4 ${isCorrectEnding ? 'text-green-400' : 'text-red-400'}`}>
-                  {isCorrectEnding ? '// ✓ CASE SOLVED — Excellent work, Detective!' : '// ✗ INCORRECT VERDICT — The truth is still out there.'}
+                  {isCorrectEnding ? '// CASE SOLVED — Excellent work, Detective!' : '// INCORRECT VERDICT — The truth is still out there.'}
                 </div>
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setCurrentScene(getScene('start'));
-                      setHistory(['start']);
-                      setOpenFiles(['README.md']);
-                      setTerminalLines([
-                        '> Restarting investigation...',
-                        '> Case file reloaded.',
-                      ]);
-                    }}
-                    className="px-4 py-2 border border-blue-500 text-blue-400 hover:bg-blue-900 text-xs"
-                  >
+                  <button onClick={resetGame} className="px-4 py-2 border border-blue-500 text-blue-400 hover:bg-blue-900 text-xs">
                     restartInvestigation()
                   </button>
-                  <Link
-                    href="/"
-                    className="px-4 py-2 border border-gray-600 text-gray-400 hover:bg-gray-800 text-xs inline-flex items-center"
-                  >
+                  <Link href="/" className="px-4 py-2 border border-gray-600 text-gray-400 hover:bg-gray-800 text-xs inline-flex items-center">
                     exitToPortal()
                   </Link>
                 </div>
@@ -670,14 +926,9 @@ export default function MysteryPage() {
               <span className="text-gray-400 text-xs">OUTPUT</span>
               <span className="text-gray-400 text-xs">DEBUG CONSOLE</span>
             </div>
-            <div
-              ref={terminalRef}
-              className="flex-1 overflow-y-auto p-2 text-green-400 text-xs leading-4"
-            >
+            <div ref={terminalRef} className="flex-1 overflow-y-auto p-2 text-green-400 text-xs leading-4">
               {terminalLines.map((line, i) => (
-                <div key={i} className={line.startsWith('>') ? 'text-green-400' : 'text-gray-400'}>
-                  {line}
-                </div>
+                <div key={i} className={line.startsWith('>') ? 'text-green-400' : 'text-gray-400'}>{line}</div>
               ))}
               <div className="text-green-400 flex items-center gap-1">
                 <span>&gt;</span>
@@ -695,12 +946,72 @@ export default function MysteryPage() {
           <span>⚠ 3 suspects</span>
         </div>
         <div className="flex items-center gap-3">
+          <span>⏱ {formatTime(timerSeconds)}</span>
           <span>Progress: {history.length} scenes visited</span>
           <span>{currentScene.file}</span>
           <span>TypeScript</span>
           <span>UTF-8</span>
         </div>
       </div>
+
+      {/* CASE SOLVED Ranking Modal */}
+      {showRankingModal && !showLeaderboard && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 border border-green-500 p-6 max-w-sm w-full font-mono">
+            <div className="text-green-400 text-lg font-bold mb-2">CASE SOLVED</div>
+            <div className="text-gray-300 mb-1">Time: <span className="text-yellow-400 font-bold">{formatTime(finalTime)}</span></div>
+            <div className="text-gray-500 text-xs mb-4">// Save your time to the rankings?</div>
+            <label className="text-gray-400 text-xs block mb-1">// Nickname:</label>
+            <input
+              type="text"
+              value={rankingNickname}
+              onChange={e => setRankingNickname(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-600 text-white text-xs p-2 mb-4 font-mono"
+              placeholder="detective_name"
+            />
+            <div className="flex gap-3">
+              <button onClick={saveRanking} className="px-4 py-2 bg-green-700 text-white hover:bg-green-600 text-xs">
+                랭킹 등록
+              </button>
+              <button
+                onClick={async () => { await fetchRankings(); setShowLeaderboard(true); }}
+                className="px-4 py-2 border border-gray-600 text-gray-400 hover:bg-gray-700 text-xs"
+              >
+                건너뛰기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leaderboard Modal */}
+      {showLeaderboard && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 border border-blue-500 p-6 max-w-sm w-full font-mono">
+            <div className="text-blue-400 text-lg font-bold mb-3">// TOP 10 RANKINGS</div>
+            {rankings.length === 0 ? (
+              <div className="text-gray-500 text-xs mb-4">// No rankings yet. Be the first!</div>
+            ) : (
+              <div className="mb-4">
+                {rankings.map((r, i) => (
+                  <div key={r.id} className="flex justify-between text-xs py-0.5 border-b border-gray-700">
+                    <span className={i === 0 ? 'text-yellow-400' : 'text-gray-400'}>#{i + 1} {r.nickname}</span>
+                    <span className="text-green-400">{formatTime(r.time_seconds)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button onClick={resetGame} className="px-4 py-2 border border-blue-500 text-blue-400 hover:bg-blue-900 text-xs">
+                restartInvestigation()
+              </button>
+              <Link href="/" className="px-4 py-2 border border-gray-600 text-gray-400 hover:bg-gray-700 text-xs inline-flex items-center">
+                exitToPortal()
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

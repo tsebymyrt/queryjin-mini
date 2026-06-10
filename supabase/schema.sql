@@ -20,11 +20,13 @@ CREATE INDEX IF NOT EXISTS game_logs_created_at_idx ON public.game_logs(created_
 ALTER TABLE public.game_logs ENABLE ROW LEVEL SECURITY;
 
 -- Allow anonymous inserts (for logging)
+DROP POLICY IF EXISTS "Allow anonymous inserts" ON public.game_logs;
 CREATE POLICY "Allow anonymous inserts" ON public.game_logs
   FOR INSERT TO anon
   WITH CHECK (true);
 
 -- Allow anonymous reads (for play counts on hub page)
+DROP POLICY IF EXISTS "Allow anonymous reads" ON public.game_logs;
 CREATE POLICY "Allow anonymous reads" ON public.game_logs
   FOR SELECT TO anon
   USING (true);
@@ -38,3 +40,17 @@ SELECT
   COUNT(DISTINCT nickname) AS unique_players
 FROM public.game_logs
 GROUP BY game_id;
+
+-- Mystery game rankings table
+CREATE TABLE IF NOT EXISTS public.mystery_rankings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  nickname TEXT NOT NULL,
+  time_seconds INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS mystery_rankings_time_idx ON public.mystery_rankings(time_seconds ASC);
+ALTER TABLE public.mystery_rankings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow anonymous inserts" ON public.mystery_rankings;
+CREATE POLICY "Allow anonymous inserts" ON public.mystery_rankings FOR INSERT TO anon WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow anonymous reads" ON public.mystery_rankings;
+CREATE POLICY "Allow anonymous reads" ON public.mystery_rankings FOR SELECT TO anon USING (true);

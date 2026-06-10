@@ -8,6 +8,7 @@ import { logGameEvent } from '@/lib/logger';
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
 const TICK_MS = 500;
+const CELL_SIZE = 18;
 
 type CellColor = string | null;
 type Board = CellColor[][];
@@ -284,17 +285,17 @@ export default function TetrisPage() {
 
   const displayBoard = renderBoard();
 
-  const COL_W = 96;
-  const ROW_H = 20;
-  const ROW_NUM_W = 40;
+  const COL_W = 80;
+  const ROW_H = 18;
+  const ROW_NUM_W = 32;
 
   return (
-    <div className="min-h-screen bg-white flex flex-col text-xs select-none" style={{ fontFamily: 'Arial, sans-serif' }}>
+    <div className="min-h-screen bg-white flex flex-col text-[10px] select-none" style={{ fontFamily: 'Arial, sans-serif' }}>
       {/* Google Sheets title bar */}
-      <div className="flex items-center px-3 py-1.5 border-b border-[#dadce0] gap-3 bg-white">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" className="w-6 h-6">
+      <div className="flex items-center px-2 py-1 border-b border-[#dadce0] gap-2 bg-white">
+        <div className="flex items-center gap-1.5">
+          <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" className="w-5 h-5">
               <rect x="3" y="2" width="18" height="20" rx="2" fill="#0f9d58" />
               <rect x="7" y="7" width="10" height="1.5" rx="0.5" fill="white" />
               <rect x="7" y="10" width="10" height="1.5" rx="0.5" fill="white" />
@@ -302,60 +303,44 @@ export default function TetrisPage() {
             </svg>
           </div>
           <div>
-            <div className="text-sm font-medium text-[#3c4043]">Q4_Planning_Dashboard_2024.xlsx</div>
-            <div className="flex items-center gap-1 text-[#5f6368]" style={{ fontSize: 11 }}>
+            <div className="font-medium text-[#3c4043]" style={{ fontSize: 11 }}>Q4_Planning_Dashboard_2024.xlsx</div>
+            <div className="flex items-center gap-0.5 text-[#5f6368]" style={{ fontSize: 10 }}>
               {['파일','수정','보기','삽입','형식','데이터','도구','확장 프로그램'].map(m => (
-                <span key={m} className="hover:bg-[#f1f3f4] px-1.5 py-0.5 rounded cursor-pointer">{m}</span>
+                <span key={m} className="hover:bg-[#f1f3f4] px-1 py-0.5 rounded cursor-pointer">{m}</span>
               ))}
             </div>
           </div>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <Link href="/" className="text-[#1a73e8] hover:underline" style={{ fontSize: 11 }}>← 업무 포털로</Link>
-          <button className="bg-[#1a73e8] text-white px-3 py-1 rounded hover:bg-[#1557b0]" style={{ fontSize: 11 }}>공유</button>
+          <Link href="/" className="text-[#1a73e8] hover:underline" style={{ fontSize: 10 }}>← 업무 포털로</Link>
+          <button className="bg-[#1a73e8] text-white px-2 py-0.5 rounded hover:bg-[#1557b0]" style={{ fontSize: 10 }}>공유</button>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-0.5 px-2 py-1 border-b border-[#dadce0] bg-white overflow-x-auto">
-        <button className="w-7 h-7 rounded hover:bg-[#f1f3f4] text-[#5f6368] flex items-center justify-center">↩</button>
-        <button className="w-7 h-7 rounded hover:bg-[#f1f3f4] text-[#5f6368] flex items-center justify-center">↪</button>
-        <button className="w-7 h-7 rounded hover:bg-[#f1f3f4] text-[#5f6368] flex items-center justify-center" style={{ fontSize: 13 }}>🖨</button>
-        <div className="w-px h-5 bg-[#dadce0] mx-0.5" />
-        <button className="text-[#3c4043] hover:bg-[#f1f3f4] px-2 py-1 rounded flex items-center gap-0.5" style={{ fontSize: 11 }}>100% ▾</button>
-        <div className="w-px h-5 bg-[#dadce0] mx-0.5" />
-        <button className="text-[#3c4043] hover:bg-[#f1f3f4] px-2 py-1 rounded min-w-[80px] text-left" style={{ fontSize: 11 }}>Arial ▾</button>
-        <div className="w-px h-5 bg-[#dadce0] mx-0.5" />
-        <button className="text-[#3c4043] hover:bg-[#f1f3f4] px-1.5 py-1 rounded" style={{ fontSize: 11 }}>10 ▾</button>
-        <div className="w-px h-5 bg-[#dadce0] mx-0.5" />
-        <button className="w-7 h-7 rounded hover:bg-[#f1f3f4] text-[#3c4043] font-bold flex items-center justify-center" style={{ fontSize: 13 }}>B</button>
-        <button className="w-7 h-7 rounded hover:bg-[#f1f3f4] text-[#3c4043] italic flex items-center justify-center" style={{ fontSize: 13 }}>I</button>
-        <button className="w-7 h-7 rounded hover:bg-[#f1f3f4] text-[#3c4043] underline flex items-center justify-center" style={{ fontSize: 13 }}>U</button>
-        <div className="w-px h-5 bg-[#dadce0] mx-0.5" />
-        <button className="w-7 h-7 rounded hover:bg-[#f1f3f4] flex flex-col items-center justify-center gap-0">
-          <span className="text-[#3c4043] font-bold leading-none" style={{ fontSize: 11 }}>A</span>
-          <div className="w-3.5 h-0.5 bg-red-500" />
-        </button>
-        <button className="w-7 h-7 rounded hover:bg-[#f1f3f4] flex flex-col items-center justify-center gap-0">
-          <span className="text-[#5f6368] leading-none" style={{ fontSize: 11 }}>⬡</span>
-          <div className="w-3.5 h-0.5 bg-yellow-400" />
-        </button>
-        <div className="w-px h-5 bg-[#dadce0] mx-0.5" />
-        <button className="w-7 h-7 rounded hover:bg-[#f1f3f4] text-[#5f6368] flex items-center justify-center" style={{ fontSize: 14 }}>⊞</button>
-        <button className="w-7 h-7 rounded hover:bg-[#f1f3f4] text-[#5f6368] flex items-center justify-center" style={{ fontSize: 12 }}>⊟</button>
-        <div className="w-px h-5 bg-[#dadce0] mx-0.5" />
-        <button className="w-7 h-7 rounded hover:bg-[#f1f3f4] text-[#5f6368] flex items-center justify-center" style={{ fontSize: 14 }}>≡</button>
-        <button className="w-7 h-7 rounded hover:bg-[#f1f3f4] text-[#5f6368] flex items-center justify-center" style={{ fontSize: 14 }}>☰</button>
-        <button className="w-7 h-7 rounded hover:bg-[#f1f3f4] text-[#5f6368] flex items-center justify-center" style={{ fontSize: 14 }}>≣</button>
+      <div className="flex items-center gap-0 px-1 py-0.5 border-b border-[#dadce0] bg-white overflow-x-auto">
+        {['↩','↪','🖨'].map((icon, i) => (
+          <button key={i} className="w-5 h-5 rounded hover:bg-[#f1f3f4] text-[#5f6368] flex items-center justify-center" style={{ fontSize: 10 }}>{icon}</button>
+        ))}
+        <div className="w-px h-4 bg-[#dadce0] mx-0.5" />
+        <button className="text-[#3c4043] hover:bg-[#f1f3f4] px-1 py-0.5 rounded" style={{ fontSize: 10 }}>100% ▾</button>
+        <div className="w-px h-4 bg-[#dadce0] mx-0.5" />
+        <button className="text-[#3c4043] hover:bg-[#f1f3f4] px-1 py-0.5 rounded" style={{ fontSize: 10 }}>Arial ▾</button>
+        <div className="w-px h-4 bg-[#dadce0] mx-0.5" />
+        <button className="text-[#3c4043] hover:bg-[#f1f3f4] px-1 py-0.5 rounded" style={{ fontSize: 10 }}>10 ▾</button>
+        <div className="w-px h-4 bg-[#dadce0] mx-0.5" />
+        {['B','I','U'].map(b => (
+          <button key={b} className="w-5 h-5 rounded hover:bg-[#f1f3f4] text-[#3c4043] flex items-center justify-center" style={{ fontSize: 10, fontWeight: b === 'B' ? 'bold' : 'normal', fontStyle: b === 'I' ? 'italic' : 'normal', textDecoration: b === 'U' ? 'underline' : 'none' }}>{b}</button>
+        ))}
       </div>
 
       {/* Name box + Formula bar */}
-      <div className="flex items-center border-b border-[#dadce0] bg-white" style={{ height: 26 }}>
-        <div className="border-r border-[#dadce0] px-2 w-20 text-center text-[#3c4043] bg-white flex-shrink-0" style={{ fontSize: 11 }}>
+      <div className="flex items-center border-b border-[#dadce0] bg-white" style={{ height: 20 }}>
+        <div className="border-r border-[#dadce0] px-1 w-16 text-center text-[#3c4043] bg-white flex-shrink-0" style={{ fontSize: 10 }}>
           J3
         </div>
-        <div className="text-[#5f6368] px-2 italic flex-shrink-0 select-none" style={{ fontSize: 13 }}>fx</div>
-        <div className="flex-1 px-2 text-[#3c4043] bg-white font-mono" style={{ fontSize: 11 }}>
+        <div className="text-[#5f6368] px-1 italic flex-shrink-0 select-none" style={{ fontSize: 11 }}>fx</div>
+        <div className="flex-1 px-1 text-[#3c4043] bg-white font-mono" style={{ fontSize: 10 }}>
           =SUM(J3:S23)
         </div>
       </div>
@@ -366,30 +351,30 @@ export default function TetrisPage() {
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="flex border-b border-[#dadce0]" style={{ height: ROW_H }}>
             <div style={{ width: ROW_NUM_W, height: ROW_H }} className="border-r border-[#dadce0] bg-[#f8f9fa] flex-shrink-0" />
-            {Array.from({ length: 20 }, (_, i) => (
+            {Array.from({ length: 26 }, (_, i) => (
               <div
                 key={i}
-                style={{ width: COL_W, height: ROW_H }}
+                style={{ width: COL_W, height: ROW_H, fontSize: 10 }}
                 className="border-r border-[#dadce0] bg-[#f8f9fa] text-center text-[#80868b] flex-shrink-0 flex items-center justify-center font-medium"
               >
                 {String.fromCharCode(65 + i)}
               </div>
             ))}
           </div>
-          {Array.from({ length: 30 }, (_, ri) => (
+          {Array.from({ length: 40 }, (_, ri) => (
             <div key={ri} className="flex border-b border-[#e8eaed]" style={{ height: ROW_H }}>
               <div
-                style={{ width: ROW_NUM_W, height: ROW_H }}
-                className="border-r border-[#dadce0] pr-1.5 flex-shrink-0 bg-[#f8f9fa] flex items-center justify-end text-[#80868b]"
+                style={{ width: ROW_NUM_W, height: ROW_H, fontSize: 10 }}
+                className="border-r border-[#dadce0] pr-1 flex-shrink-0 bg-[#f8f9fa] flex items-center justify-end text-[#80868b]"
               >
                 {ri + 1}
               </div>
-              {Array.from({ length: 20 }, (_, ci) => {
+              {Array.from({ length: 26 }, (_, ci) => {
                 const val = getFakeCell(ri, ci);
                 return (
                   <div
                     key={ci}
-                    style={{ width: COL_W, height: ROW_H, opacity: 0.3 }}
+                    style={{ width: COL_W, height: ROW_H, opacity: 0.3, fontSize: 9 }}
                     className="border-r border-[#e8eaed] px-1 flex-shrink-0 text-[#3c4043] overflow-hidden whitespace-nowrap flex items-center"
                   >
                     {val}
@@ -400,24 +385,24 @@ export default function TetrisPage() {
           ))}
         </div>
 
-        {/* Game area */}
-        <div className="relative z-10 flex items-start justify-center w-full pt-6 gap-4">
+        {/* Game area — top-left */}
+        <div className="relative z-10 flex items-start justify-start w-full pt-2 pl-2 gap-2">
           <div className="flex flex-col">
             {/* Named range label */}
-            <div className="flex items-center gap-1.5 mb-1">
+            <div className="flex items-center gap-1 mb-0.5">
               <div
-                className="text-white font-medium rounded-sm px-1.5 py-0.5"
-                style={{ backgroundColor: '#1a73e8', fontSize: 10 }}
+                className="text-white font-medium rounded-sm px-1 py-0.5"
+                style={{ backgroundColor: '#1a73e8', fontSize: 9 }}
               >
                 J3:S23
               </div>
-              <span className="text-[#5f6368]" style={{ fontSize: 10 }}>선택된 범위</span>
+              <span className="text-[#5f6368]" style={{ fontSize: 9 }}>선택된 범위</span>
             </div>
             {/* Board */}
             <div
               style={{
-                width: BOARD_WIDTH * 24,
-                height: BOARD_HEIGHT * 24,
+                width: BOARD_WIDTH * CELL_SIZE,
+                height: BOARD_HEIGHT * CELL_SIZE,
                 border: '2px solid #1a73e8',
                 backgroundColor: 'rgba(255,255,255,0.97)',
                 boxShadow: '0 2px 8px rgba(26,115,232,0.18)',
@@ -429,8 +414,8 @@ export default function TetrisPage() {
                     <div
                       key={ci}
                       style={{
-                        width: 24,
-                        height: 24,
+                        width: CELL_SIZE,
+                        height: CELL_SIZE,
                         backgroundColor: cell === 'ghost' ? 'rgba(26,115,232,0.08)' : cell || 'transparent',
                         border: cell && cell !== 'ghost'
                           ? `1px solid ${PIECE_BORDERS[cell] || 'rgba(0,0,0,0.15)'}`
@@ -444,38 +429,38 @@ export default function TetrisPage() {
             </div>
           </div>
 
-          {/* Side panel — Google Sheets sidebar */}
+          {/* Side panel */}
           <div
             style={{
               backgroundColor: 'white',
               border: '1px solid #dadce0',
               boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-              minWidth: 148,
+              width: 80,
               borderRadius: 2,
             }}
           >
-            <div className="px-3 py-2 border-b border-[#dadce0] bg-[#f8f9fa]">
-              <div className="font-medium text-[#3c4043]" style={{ fontSize: 11 }}>범위 분석</div>
-              <div className="text-[#80868b]" style={{ fontSize: 10 }}>J3:S23</div>
+            <div className="px-2 py-1 border-b border-[#dadce0] bg-[#f8f9fa]">
+              <div className="font-medium text-[#3c4043]" style={{ fontSize: 9 }}>범위 분석</div>
+              <div className="text-[#80868b]" style={{ fontSize: 9 }}>J3:S23</div>
             </div>
             {[
               { label: 'SCORE', value: score.toLocaleString() },
               { label: 'LINES', value: String(lines) },
               { label: 'LEVEL', value: String(level) },
             ].map(({ label, value }) => (
-              <div key={label} className="px-3 py-2 border-b border-[#e8eaed]">
-                <div className="text-[#5f6368] mb-1 font-medium uppercase tracking-wide" style={{ fontSize: 10 }}>{label}</div>
-                <div className="font-bold text-[#3c4043]" style={{ fontSize: label === 'SCORE' ? 14 : 12 }}>{value}</div>
+              <div key={label} className="px-2 py-1 border-b border-[#e8eaed]">
+                <div className="text-[#5f6368] font-medium uppercase tracking-wide" style={{ fontSize: 8 }}>{label}</div>
+                <div className="font-bold text-[#3c4043]" style={{ fontSize: label === 'SCORE' ? 10 : 9 }}>{value}</div>
               </div>
             ))}
-            <div className="px-3 py-2 border-b border-[#e8eaed]">
-              <div className="text-[#5f6368] mb-2 font-medium uppercase tracking-wide" style={{ fontSize: 10 }}>NEXT</div>
+            <div className="px-2 py-1 border-b border-[#e8eaed]">
+              <div className="text-[#5f6368] font-medium uppercase tracking-wide mb-1" style={{ fontSize: 8 }}>NEXT</div>
               <div className="flex flex-col items-center">
                 {nextPiece && nextPiece.shape.map((row, r) => (
                   <div key={r} className="flex">
                     {row.map((cell, c) => (
                       <div key={c} style={{
-                        width: 16, height: 16,
+                        width: 10, height: 10,
                         backgroundColor: cell ? nextPiece.color : 'transparent',
                         border: cell ? `1px solid ${PIECE_BORDERS[nextPiece.color] || 'rgba(0,0,0,0.15)'}` : '1px solid transparent',
                       }} />
@@ -484,33 +469,32 @@ export default function TetrisPage() {
                 ))}
               </div>
             </div>
-            <div className="px-3 py-2 border-b border-[#e8eaed]">
+            <div className="px-2 py-1 border-b border-[#e8eaed]">
               {!started || gameOver ? (
                 <button
                   onClick={startGame}
-                  className="w-full text-white py-1.5 font-medium"
-                  style={{ backgroundColor: '#1a73e8', borderRadius: 2, fontSize: 11 }}
+                  className="w-full text-white py-1 font-medium"
+                  style={{ backgroundColor: '#1a73e8', borderRadius: 2, fontSize: 9 }}
                 >
-                  {gameOver ? '다시 시작' : '시작'}
+                  {gameOver ? '다시' : '시작'}
                 </button>
               ) : (
                 <button
                   onClick={() => { pausedRef.current = !pausedRef.current; setPaused(pausedRef.current); }}
-                  className="w-full text-white py-1.5 font-medium"
-                  style={{ backgroundColor: paused ? '#1a73e8' : '#5f6368', borderRadius: 2, fontSize: 11 }}
+                  className="w-full text-white py-1 font-medium"
+                  style={{ backgroundColor: paused ? '#1a73e8' : '#5f6368', borderRadius: 2, fontSize: 9 }}
                 >
-                  {paused ? '계속' : '일시정지'}
+                  {paused ? '계속' : '정지'}
                 </button>
               )}
             </div>
-            <div className="px-3 py-2">
-              <div className="text-[#5f6368] mb-1 font-medium uppercase tracking-wide" style={{ fontSize: 10 }}>CONTROLS</div>
-              <div className="text-[#80868b] space-y-0.5" style={{ fontSize: 10 }}>
+            <div className="px-2 py-1">
+              <div className="text-[#5f6368] font-medium uppercase tracking-wide mb-0.5" style={{ fontSize: 8 }}>KEYS</div>
+              <div className="text-[#80868b] space-y-0" style={{ fontSize: 8 }}>
                 <div>← → 이동</div>
                 <div>↑ 회전</div>
-                <div>↓ 빠르게</div>
-                <div>Space 낙하</div>
-                <div>P 일시정지</div>
+                <div>↓/Spc 낙하</div>
+                <div>P 정지</div>
               </div>
             </div>
           </div>
@@ -518,26 +502,26 @@ export default function TetrisPage() {
 
         {paused && (
           <div className="absolute inset-0 z-20 flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.75)' }}>
-            <div className="bg-white border border-[#dadce0] shadow-lg px-8 py-6 text-center" style={{ borderRadius: 4 }}>
-              <div className="text-2xl mb-2">⏸</div>
-              <div className="font-medium text-[#3c4043]" style={{ fontSize: 14 }}>일시 정지됨</div>
-              <div className="text-[#5f6368] mt-1" style={{ fontSize: 11 }}>P 를 눌러 계속하세요</div>
+            <div className="bg-white border border-[#dadce0] shadow-lg px-6 py-4 text-center" style={{ borderRadius: 4 }}>
+              <div className="text-xl mb-1">⏸</div>
+              <div className="font-medium text-[#3c4043]" style={{ fontSize: 12 }}>일시 정지됨</div>
+              <div className="text-[#5f6368] mt-1" style={{ fontSize: 10 }}>P 를 눌러 계속하세요</div>
             </div>
           </div>
         )}
 
         {gameOver && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-white border border-[#dadce0] shadow-xl px-8 py-6 text-center" style={{ borderRadius: 4 }}>
-              <div className="text-2xl mb-2">🏁</div>
-              <div className="font-bold text-[#3c4043] mb-2" style={{ fontSize: 18 }}>게임 오버</div>
-              <div className="text-[#5f6368] mb-1" style={{ fontSize: 13 }}>최종 점수: <strong>{score.toLocaleString()}</strong></div>
-              <div className="text-[#80868b] mb-4" style={{ fontSize: 11 }}>처리 라인: {lines} | 달성 레벨: {level}</div>
+            <div className="bg-white border border-[#dadce0] shadow-xl px-6 py-4 text-center" style={{ borderRadius: 4 }}>
+              <div className="text-xl mb-1">🏁</div>
+              <div className="font-bold text-[#3c4043] mb-1" style={{ fontSize: 14 }}>게임 오버</div>
+              <div className="text-[#5f6368] mb-1" style={{ fontSize: 11 }}>점수: <strong>{score.toLocaleString()}</strong></div>
+              <div className="text-[#80868b] mb-3" style={{ fontSize: 10 }}>{lines}줄 | 레벨 {level}</div>
               <div className="flex gap-2 justify-center">
-                <button onClick={startGame} className="px-4 py-2 text-white" style={{ backgroundColor: '#1a73e8', borderRadius: 2, fontSize: 13 }}>
+                <button onClick={startGame} className="px-3 py-1 text-white" style={{ backgroundColor: '#1a73e8', borderRadius: 2, fontSize: 11 }}>
                   다시 시작
                 </button>
-                <Link href="/" className="px-4 py-2 text-[#3c4043] hover:bg-[#f1f3f4]" style={{ border: '1px solid #dadce0', borderRadius: 2, fontSize: 13 }}>
+                <Link href="/" className="px-3 py-1 text-[#3c4043] hover:bg-[#f1f3f4]" style={{ border: '1px solid #dadce0', borderRadius: 2, fontSize: 11 }}>
                   포털로
                 </Link>
               </div>
@@ -548,13 +532,13 @@ export default function TetrisPage() {
 
       {/* Sheet tabs */}
       <div className="flex items-center border-t border-[#dadce0] bg-[#f8f9fa] px-2 py-0.5 gap-0.5">
-        <button className="bg-white border border-[#dadce0] border-b-white px-3 py-1 -mb-px text-[#3c4043] font-medium" style={{ fontSize: 11 }}>
+        <button className="bg-white border border-[#dadce0] border-b-white px-2 py-0.5 -mb-px text-[#3c4043] font-medium" style={{ fontSize: 10 }}>
           Q4 Planning
         </button>
         {['Q3 Actuals','Headcount','Budget vs Actual'].map(t => (
-          <button key={t} className="text-[#5f6368] hover:bg-[#e8eaed] px-3 py-1" style={{ fontSize: 11 }}>{t}</button>
+          <button key={t} className="text-[#5f6368] hover:bg-[#e8eaed] px-2 py-0.5" style={{ fontSize: 10 }}>{t}</button>
         ))}
-        <span className="ml-1 text-[#5f6368] text-base leading-none cursor-pointer hover:bg-[#e8eaed] px-1">+</span>
+        <span className="ml-1 text-[#5f6368] leading-none cursor-pointer hover:bg-[#e8eaed] px-1">+</span>
       </div>
     </div>
   );

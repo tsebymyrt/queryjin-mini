@@ -53,3 +53,26 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 1. `app/games/<게임명>/page.tsx` 생성
 2. `app/page.tsx` 허브 화면에 `GameCard` 추가
 3. `lib/logger.ts`의 `logGameEvent()` 호출로 로그 연동
+
+## 🔍 Code Reviewer — 플레이 가이드
+
+> VS Code 화면으로 위장한 영문 추리게임입니다.
+
+**목표:** Senior Dev Victor Harmon의 사망 사건을 수사해 범인을 찾아내세요.
+
+**기본 조작:**
+- 에디터 하단의 함수 버튼 클릭 → 다음 장면으로 이동
+- 좌측 파일 탐색기 → 방문한 파일 확인 및 재방문
+- 하단 터미널 → 수사 기록 로그
+
+**Tool 획득 시스템:**
+- 각 장면에서 mini-puzzle을 풀면 도구(Tool)를 획득합니다
+- `KEYCARD_DATA` — 현장 감식 장면에서 획득
+- `USB_KEY` — USB 분석 장면에서 획득 (git log에 단서 있음)
+- 일부 장면은 특정 Tool이 있어야만 입장 가능합니다
+
+**랭킹:**
+- 첫 번째 선택부터 정답까지 걸린 시간으로 순위를 매깁니다
+- 정답을 맞추면 닉네임과 함께 랭킹 등록 가능
+
+**Hint:** The answer is hidden in the digital fingerprints, not the physical ones.
