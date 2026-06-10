@@ -4,9 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { logGameEvent } from '@/lib/logger';
 
-// Sudoku puzzle generator
 function generatePuzzle(): { puzzle: (number | null)[][], solution: number[][] } {
-  // A set of pre-made puzzles (puzzle/solution pairs)
   const puzzles = [
     {
       puzzle: [
@@ -88,6 +86,27 @@ function generatePuzzle(): { puzzle: (number | null)[][], solution: number[][] }
 
 const COLS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
 
+// Fake data rows above
+const ROW_ABOVE_1_CELLS = ['분석ID', '데이터1', '데이터2', '데이터3', '데이터4', '데이터5', '데이터6', '데이터7', '데이터8', '데이터9', '합계', '비고'];
+const ROW_ABOVE_2_CELLS = ['A-001', '5', '3', '7', '8', '6', '1', '9', '2', '4', '45', '검증완료'];
+
+// Fake totals below
+const TOTALS_ROW = ['합계', '47', '41', '52', '38', '64', '55', '43', '57', '49', '446', ''];
+const AVERAGE_ROW = ['평균', '5.2', '4.6', '5.8', '4.2', '7.1', '6.1', '4.8', '6.3', '5.4', '49.6', ''];
+
+// Fake right-side values (J and K cols) per data row
+const RIGHT_VALS = [
+  ['45', '100.0%'],
+  ['38', '84.4%'],
+  ['41', '91.1%'],
+  ['52', '115.6%'],
+  ['36', '80.0%'],
+  ['49', '108.9%'],
+  ['44', '97.8%'],
+  ['53', '117.8%'],
+  ['47', '104.4%'],
+];
+
 export default function SudokuPage() {
   const [puzzle, setPuzzle] = useState<(number | null)[][]>([]);
   const [solution, setSolution] = useState<number[][]>([]);
@@ -127,17 +146,12 @@ export default function SudokuPage() {
   };
 
   const getCellKey = (r: number, c: number) => `${r},${c}`;
-
   const isFixed = (r: number, c: number) => puzzle[r]?.[c] !== null && puzzle[r]?.[c] !== undefined;
 
   const handleCellClick = (r: number, c: number) => {
     setSelected([r, c]);
     const val = board[r]?.[c];
-    if (val) {
-      setFormulaBarText(`=SUDOKU_VAL(${COLS[c]}${r + 1})`);
-    } else {
-      setFormulaBarText(`=${COLS[c]}${r + 1}`);
-    }
+    setFormulaBarText(val ? `=SUDOKU_VAL(${COLS[c]}${r + 4})` : `=${COLS[c]}${r + 4}`);
   };
 
   const checkComplete = useCallback((b: (number | null)[][]) => {
@@ -159,11 +173,8 @@ export default function SudokuPage() {
       setNotes(prev => {
         const newNotes = new Map(prev);
         const cellNotes = new Set(newNotes.get(key) || []);
-        if (cellNotes.has(num)) {
-          cellNotes.delete(num);
-        } else {
-          cellNotes.add(num);
-        }
+        if (cellNotes.has(num)) cellNotes.delete(num);
+        else cellNotes.add(num);
         newNotes.set(key, cellNotes);
         return newNotes;
       });
@@ -174,7 +185,6 @@ export default function SudokuPage() {
     newBoard[r][c] = num;
     setBoard(newBoard);
 
-    // Check for errors
     if (num !== null && num !== solution[r]?.[c]) {
       setErrors(prev => new Set([...prev, getCellKey(r, c)]));
     } else {
@@ -183,7 +193,6 @@ export default function SudokuPage() {
         newErrors.delete(getCellKey(r, c));
         return newErrors;
       });
-      // Clear notes for this cell
       if (num !== null) {
         setNotes(prev => {
           const newNotes = new Map(prev);
@@ -204,11 +213,9 @@ export default function SudokuPage() {
     const handleKey = (e: KeyboardEvent) => {
       if (!selected) return;
       const [r, c] = selected;
-      if (e.key >= '1' && e.key <= '9') {
-        handleInput(parseInt(e.key));
-      } else if (e.key === 'Backspace' || e.key === 'Delete') {
-        handleInput(null);
-      } else if (e.key === 'ArrowUp' && r > 0) setSelected([r - 1, c]);
+      if (e.key >= '1' && e.key <= '9') handleInput(parseInt(e.key));
+      else if (e.key === 'Backspace' || e.key === 'Delete') handleInput(null);
+      else if (e.key === 'ArrowUp' && r > 0) setSelected([r - 1, c]);
       else if (e.key === 'ArrowDown' && r < 8) setSelected([r + 1, c]);
       else if (e.key === 'ArrowLeft' && c > 0) setSelected([r, c - 1]);
       else if (e.key === 'ArrowRight' && c < 8) setSelected([r, c + 1]);
@@ -231,12 +238,13 @@ export default function SudokuPage() {
   };
 
   const getBoxBorder = (r: number, c: number) => {
-    let classes = 'border border-gray-300';
-    if (c % 3 === 0) classes += ' border-l-2 border-l-gray-500';
-    if (c === 8) classes += ' border-r-2 border-r-gray-500';
-    if (r % 3 === 0) classes += ' border-t-2 border-t-gray-500';
-    if (r === 8) classes += ' border-b-2 border-b-gray-500';
-    return classes;
+    let style: React.CSSProperties = {
+      borderTop: r % 3 === 0 ? '2px solid #888' : '1px solid #d0d0d0',
+      borderLeft: c % 3 === 0 ? '2px solid #888' : '1px solid #d0d0d0',
+      borderBottom: r === 8 ? '2px solid #888' : '1px solid #d0d0d0',
+      borderRight: c === 8 ? '2px solid #888' : '1px solid #d0d0d0',
+    };
+    return style;
   };
 
   const isSameNumber = (r: number, c: number) => {
@@ -254,114 +262,152 @@ export default function SudokuPage() {
 
   const selectedVal = selected ? board[selected[0]]?.[selected[1]] : null;
 
+  // Excel cell dimensions
+  const CELL_W = 40;
+  const CELL_H = 32;
+  const ROW_NUM_W = 32;
+  const HEADER_H = 24;
+  const EXTRA_COL_W = 56;
+
   return (
     <div className="min-h-screen bg-white flex flex-col text-xs font-sans">
       {/* Excel Title bar */}
-      <div className="bg-gray-200 border-b border-gray-400 px-2 py-1 flex items-center justify-between">
+      <div className="bg-[#217346] border-b border-[#1a5c38] px-2 py-1 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="text-green-700 text-base font-bold">X</div>
-          <span className="text-gray-700 text-xs">수도쿠_분석데이터_v3.xlsx - Microsoft Excel</span>
+          <div className="bg-white text-[#217346] font-black px-1.5 py-0.5 text-sm leading-none">X</div>
+          <span className="text-white text-xs">수도쿠_분석데이터_v3.xlsx - Microsoft Excel</span>
         </div>
         <div className="flex items-center gap-1">
-          <button className="text-gray-500 hover:bg-gray-300 px-2 py-0.5">─</button>
-          <button className="text-gray-500 hover:bg-gray-300 px-2 py-0.5">□</button>
-          <button className="text-gray-500 hover:bg-red-500 hover:text-white px-2 py-0.5">✕</button>
+          <button className="text-white opacity-70 hover:opacity-100 hover:bg-[#1a5c38] px-2 py-0.5">─</button>
+          <button className="text-white opacity-70 hover:opacity-100 hover:bg-[#1a5c38] px-2 py-0.5">□</button>
+          <button className="text-white opacity-70 hover:opacity-100 hover:bg-red-600 px-2 py-0.5">✕</button>
         </div>
       </div>
 
       {/* Menu bar */}
-      <div className="bg-gray-100 border-b border-gray-300 px-2 py-0.5 flex items-center gap-1">
-        <Link
-          href="/"
-          className="text-gray-600 hover:bg-gray-200 px-2 py-1 text-xs"
-        >
-          ← 업무 포털로
-        </Link>
-        <span className="text-gray-300">|</span>
+      <div className="bg-[#f2f2f2] border-b border-[#d0d0d0] px-2 py-0.5 flex items-center gap-0">
+        <Link href="/" className="text-[#444] hover:bg-[#e0e0e0] px-2 py-1 text-xs">← 업무 포털로</Link>
+        <span className="text-[#d0d0d0] mx-1">|</span>
         {['파일', '홈', '삽입', '페이지 레이아웃', '수식', '데이터', '검토', '보기'].map(item => (
-          <button key={item} className="text-gray-700 hover:bg-gray-200 px-2 py-1">{item}</button>
+          <button key={item} className="text-[#444] hover:bg-[#e0e0e0] px-2 py-1">{item}</button>
         ))}
       </div>
 
       {/* Ribbon */}
-      <div className="bg-gray-50 border-b border-gray-300 px-3 py-1.5 flex items-center gap-4">
-        <div className="flex items-center gap-2 border-r border-gray-300 pr-4">
-          <select className="border border-gray-400 text-xs px-1 py-0.5 bg-white w-28">
+      <div className="bg-[#f9f9f9] border-b border-[#d0d0d0] px-3 py-1.5 flex items-center gap-3">
+        <div className="flex items-center gap-1.5 border-r border-[#d0d0d0] pr-3">
+          <select className="border border-[#ababab] text-xs px-1 py-0.5 bg-white w-28">
             <option>맑은 고딕</option>
           </select>
-          <select className="border border-gray-400 text-xs px-1 py-0.5 bg-white w-12">
+          <select className="border border-[#ababab] text-xs px-1 py-0.5 bg-white w-12">
             <option>11</option>
           </select>
           <div className="flex gap-0.5">
-            <button className="border border-gray-300 px-1.5 py-0.5 bg-white hover:bg-gray-100 font-bold">B</button>
-            <button className="border border-gray-300 px-1.5 py-0.5 bg-white hover:bg-gray-100 italic">I</button>
-            <button className="border border-gray-300 px-1.5 py-0.5 bg-white hover:bg-gray-100 underline">U</button>
+            <button className="border border-[#d0d0d0] px-1.5 py-0.5 bg-white hover:bg-[#e0e0e0] font-bold text-xs">B</button>
+            <button className="border border-[#d0d0d0] px-1.5 py-0.5 bg-white hover:bg-[#e0e0e0] italic text-xs">I</button>
+            <button className="border border-[#d0d0d0] px-1.5 py-0.5 bg-white hover:bg-[#e0e0e0] underline text-xs">U</button>
           </div>
         </div>
-        <div className="flex items-center gap-2 border-r border-gray-300 pr-4">
+        <div className="flex items-center gap-1.5 border-r border-[#d0d0d0] pr-3">
           <button
             onClick={() => setIsNoteMode(!isNoteMode)}
-            className={`border px-2 py-0.5 text-xs ${isNoteMode ? 'bg-blue-100 border-blue-400 text-blue-700' : 'border-gray-300 bg-white hover:bg-gray-100'}`}
+            className={`border px-2 py-0.5 text-xs ${isNoteMode ? 'bg-[#cce5ff] border-[#80bdff] text-[#004085]' : 'border-[#d0d0d0] bg-white hover:bg-[#e0e0e0]'}`}
           >
             메모 모드 {isNoteMode ? 'ON' : 'OFF'}
           </button>
-          <button
-            onClick={newGame}
-            className="border border-gray-300 px-2 py-0.5 bg-white hover:bg-gray-100"
-          >
+          <button onClick={newGame} className="border border-[#d0d0d0] px-2 py-0.5 bg-white hover:bg-[#e0e0e0] text-xs">
             새 파일
           </button>
         </div>
-        <div className="flex items-center gap-3 text-xs text-gray-500">
+        <div className="flex items-center gap-3 text-[#555]">
           <span>난이도: {difficulty}</span>
-          <span>시간: <span className="font-mono text-blue-700">{formatTime(timer)}</span></span>
-          {errors.size > 0 && <span className="text-red-600">오류: {errors.size}개</span>}
+          <span>시간: <span className="font-mono text-[#217346] font-bold">{formatTime(timer)}</span></span>
+          {errors.size > 0 && <span className="text-red-600 font-medium">오류: {errors.size}개</span>}
         </div>
       </div>
 
       {/* Formula bar */}
-      <div className="bg-white border-b border-gray-300 px-2 py-1 flex items-center gap-2">
-        <div className="bg-white border border-gray-400 text-xs px-2 py-1 w-16 text-center font-mono">
-          {selected ? `${COLS[selected[1]]}${selected[0] + 1}` : ''}
+      <div className="bg-white border-b border-[#d0d0d0] px-2 py-1 flex items-center gap-2">
+        <div className="bg-white border border-[#ababab] px-2 py-0.5 w-16 text-center font-mono text-xs">
+          {selected ? `${COLS[selected[1]]}${selected[0] + 4}` : ''}
         </div>
-        <div className="text-gray-400">fx</div>
-        <div className="flex-1 bg-white border border-gray-300 px-2 py-1 font-mono text-xs text-gray-700">
-          {formulaBarText || (selected ? `데이터 분석 셀 ${selected ? `${COLS[selected[1]]}${selected[0] + 1}` : ''}` : '셀을 선택하세요')}
+        <div className="text-[#888] font-italic text-xs">fx</div>
+        <div className="flex-1 bg-white border border-[#d0d0d0] px-2 py-0.5 font-mono text-xs text-[#333]">
+          {formulaBarText || (selected ? `데이터 분석 셀 ${COLS[selected[1]]}${selected[0] + 4}` : '셀을 선택하세요')}
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Main spreadsheet area */}
-        <div className="flex-1 overflow-auto p-4 bg-white">
-          {/* Column headers */}
+        <div className="flex-1 overflow-auto p-3 bg-white">
+          {/* ── Column headers ── */}
           <div className="flex">
-            <div className="w-8 h-6 bg-gray-100 border border-gray-300 flex-shrink-0" />
-            {/* Row number col */}
-            <div className="w-8 bg-gray-100 border-r border-gray-300 flex-shrink-0" />
-            {COLS.map((col, ci) => (
+            {/* Corner */}
+            <div style={{ width: ROW_NUM_W, height: HEADER_H }} className="bg-[#f2f2f2] border border-[#d0d0d0] flex-shrink-0" />
+            {/* Sudoku cols A-I + J K */}
+            {[...COLS, 'J', 'K'].map((col, ci) => (
               <div
                 key={col}
-                className={`w-12 h-6 bg-gray-100 border border-gray-300 text-center text-xs text-gray-600 flex items-center justify-center font-medium flex-shrink-0
-                  ${selected && selected[1] === ci ? 'bg-yellow-50 font-bold text-yellow-800' : ''}`}
+                style={{ width: ci < 9 ? CELL_W : EXTRA_COL_W, height: HEADER_H }}
+                className={`border border-[#d0d0d0] flex-shrink-0 flex items-center justify-center font-medium
+                  ${selected && selected[1] === ci ? 'bg-[#fff2cc] font-bold text-[#7d5a00]' : 'bg-[#f2f2f2] text-[#555]'}`}
               >
                 {col}
               </div>
             ))}
           </div>
 
-          {/* Grid rows */}
+          {/* ── Row 1: merged header ── */}
+          <div className="flex">
+            <div style={{ width: ROW_NUM_W, height: CELL_H }} className="bg-[#f2f2f2] border border-[#d0d0d0] flex-shrink-0 flex items-center justify-center text-[#555]">1</div>
+            <div
+              style={{ width: CELL_W * 9 + EXTRA_COL_W * 2, height: CELL_H }}
+              className="border border-[#d0d0d0] flex-shrink-0 bg-[#dce6f1] flex items-center px-2 font-bold text-[#1f497d]"
+            >
+              수도쿠 데이터 분석 보고서 Q4-2024
+            </div>
+          </div>
+
+          {/* ── Row 2: column label headers ── */}
+          <div className="flex">
+            <div style={{ width: ROW_NUM_W, height: CELL_H }} className="bg-[#f2f2f2] border border-[#d0d0d0] flex-shrink-0 flex items-center justify-center text-[#555]">2</div>
+            {ROW_ABOVE_1_CELLS.map((label, ci) => (
+              <div
+                key={ci}
+                style={{ width: ci < 9 ? CELL_W : EXTRA_COL_W, height: CELL_H, fontSize: 10 }}
+                className="border border-[#d0d0d0] flex-shrink-0 bg-[#f2f2f2] flex items-center justify-center font-medium text-[#444] text-center px-0.5 overflow-hidden"
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+
+          {/* ── Row 3: sample data row ── */}
+          <div className="flex">
+            <div style={{ width: ROW_NUM_W, height: CELL_H }} className="bg-[#f2f2f2] border border-[#d0d0d0] flex-shrink-0 flex items-center justify-center text-[#555]">3</div>
+            {ROW_ABOVE_2_CELLS.map((val, ci) => (
+              <div
+                key={ci}
+                style={{ width: ci < 9 ? CELL_W : EXTRA_COL_W, height: CELL_H }}
+                className="border border-[#d0d0d0] flex-shrink-0 bg-white flex items-center justify-center text-[#333]"
+              >
+                {val}
+              </div>
+            ))}
+          </div>
+
+          {/* ── Sudoku rows (4–12) ── */}
           {board.map((row, ri) => (
             <div key={ri} className="flex">
               {/* Row number */}
-              <div className="w-8 h-12 bg-gray-100 border border-gray-300 text-center text-xs text-gray-600 flex items-center justify-center flex-shrink-0">
-                {/* Box separator label */}
-              </div>
               <div
-                className={`w-8 bg-gray-100 border border-gray-300 text-center text-xs text-gray-600 flex items-center justify-center flex-shrink-0 font-medium
-                  ${selected && selected[0] === ri ? 'bg-yellow-50 font-bold text-yellow-800' : ''}`}
+                style={{ width: ROW_NUM_W, height: CELL_H }}
+                className={`border border-[#d0d0d0] flex-shrink-0 flex items-center justify-center font-medium
+                  ${selected && selected[0] === ri ? 'bg-[#fff2cc] font-bold text-[#7d5a00]' : 'bg-[#f2f2f2] text-[#555]'}`}
               >
-                {ri + 1}
+                {ri + 4}
               </div>
+              {/* Sudoku cells */}
               {row.map((val, ci) => {
                 const key = getCellKey(ri, ci);
                 const isSelected = selected?.[0] === ri && selected?.[1] === ci;
@@ -369,29 +415,42 @@ export default function SudokuPage() {
                 const isSame = !isSelected && isSameNumber(ri, ci);
                 const isRel = !isSelected && !isSame && isRelated(ri, ci);
                 const cellNotes = notes.get(key);
+                const boxStyle = getBoxBorder(ri, ci);
+
+                let bgColor = 'white';
+                if (isSelected) bgColor = '#e8f0fe';
+                else if (isErr) bgColor = '#fce8e8';
+                else if (isSame) bgColor = '#e8f0fe';
+                else if (isRel) bgColor = '#f8f9fa';
 
                 return (
                   <div
                     key={ci}
                     onClick={() => handleCellClick(ri, ci)}
-                    className={`
-                      w-12 h-12 flex-shrink-0 flex items-center justify-center cursor-pointer select-none
-                      ${getBoxBorder(ri, ci)}
-                      ${isSelected ? 'bg-blue-200 border-2 border-blue-600 z-10' : ''}
-                      ${isErr ? 'text-red-600 bg-red-50' : ''}
-                      ${isSame ? 'bg-blue-100' : ''}
-                      ${isRel && !isSelected ? 'bg-blue-50' : ''}
-                      ${!isSelected && !isErr && !isSame && !isRel ? 'hover:bg-gray-50' : ''}
-                    `}
+                    style={{
+                      width: CELL_W,
+                      height: CELL_H,
+                      ...boxStyle,
+                      backgroundColor: bgColor,
+                      ...(isSelected ? { border: '2px solid #1a73e8', zIndex: 10 } : {}),
+                      position: 'relative',
+                    }}
+                    className="flex-shrink-0 flex items-center justify-center cursor-pointer select-none"
                   >
                     {val ? (
-                      <span className={`text-sm font-medium ${isFixed(ri, ci) ? 'text-gray-900' : isErr ? 'text-red-600' : 'text-blue-700'}`}>
+                      <span
+                        className="font-bold"
+                        style={{
+                          fontSize: 13,
+                          color: isFixed(ri, ci) ? '#1f2937' : isErr ? '#dc2626' : '#1565c0',
+                        }}
+                      >
                         {val}
                       </span>
                     ) : cellNotes && cellNotes.size > 0 ? (
                       <div className="grid grid-cols-3 gap-0 w-full h-full p-0.5">
                         {[1,2,3,4,5,6,7,8,9].map(n => (
-                          <span key={n} className={`text-center text-gray-400 leading-none flex items-center justify-center`} style={{ fontSize: '8px' }}>
+                          <span key={n} className="flex items-center justify-center text-[#999]" style={{ fontSize: 7 }}>
                             {cellNotes.has(n) ? n : ''}
                           </span>
                         ))}
@@ -400,92 +459,152 @@ export default function SudokuPage() {
                   </div>
                 );
               })}
+              {/* J and K extra cols */}
+              {RIGHT_VALS[ri] && RIGHT_VALS[ri].map((v, ki) => (
+                <div
+                  key={ki}
+                  style={{ width: EXTRA_COL_W, height: CELL_H }}
+                  className="border border-[#d0d0d0] flex-shrink-0 bg-[#f9f9f9] flex items-center justify-center text-[#333]"
+                >
+                  {v}
+                </div>
+              ))}
             </div>
           ))}
-        </div>
 
-        {/* Right panel - numpad */}
-        <div className="w-36 bg-gray-50 border-l border-gray-300 p-3 flex flex-col gap-2">
-          <div className="text-xs font-bold text-gray-600 mb-1">입력 패널</div>
-          <div className="grid grid-cols-3 gap-1">
-            {[1,2,3,4,5,6,7,8,9].map(n => (
-              <button
-                key={n}
-                onClick={() => handleInput(n)}
-                className={`
-                  h-10 border text-sm font-medium transition-colors
-                  ${selectedVal === n ? 'bg-blue-600 text-white border-blue-700' : 'bg-white border-gray-300 hover:bg-blue-50 hover:border-blue-400 text-gray-800'}
-                `}
+          {/* ── Row 13: Totals ── */}
+          <div className="flex">
+            <div style={{ width: ROW_NUM_W, height: CELL_H }} className="bg-[#f2f2f2] border border-[#d0d0d0] flex-shrink-0 flex items-center justify-center text-[#555]">13</div>
+            {TOTALS_ROW.map((val, ci) => (
+              <div
+                key={ci}
+                style={{ width: ci < 9 ? CELL_W : EXTRA_COL_W, height: CELL_H }}
+                className="border border-[#d0d0d0] flex-shrink-0 bg-[#f2f2f2] flex items-center justify-center font-medium text-[#333]"
               >
-                {n}
-              </button>
+                {val}
+              </div>
             ))}
           </div>
-          <button
-            onClick={() => handleInput(null)}
-            className="w-full h-8 bg-white border border-gray-300 hover:bg-red-50 hover:border-red-400 text-gray-600 text-xs mt-1"
-          >
-            지우기 (Del)
-          </button>
 
-          <div className="mt-3 border-t border-gray-200 pt-3">
-            <div className="text-xs font-bold text-gray-600 mb-1">도움말</div>
-            <div className="text-xs text-gray-500 space-y-1">
-              <div>• 화살표: 셀 이동</div>
-              <div>• 1-9: 숫자 입력</div>
-              <div>• Del: 삭제</div>
-              <div>• 메모 모드: 후보 수</div>
-            </div>
+          {/* ── Row 14: Averages ── */}
+          <div className="flex">
+            <div style={{ width: ROW_NUM_W, height: CELL_H }} className="bg-[#f2f2f2] border border-[#d0d0d0] flex-shrink-0 flex items-center justify-center text-[#555]">14</div>
+            {AVERAGE_ROW.map((val, ci) => (
+              <div
+                key={ci}
+                style={{ width: ci < 9 ? CELL_W : EXTRA_COL_W, height: CELL_H }}
+                className="border border-[#d0d0d0] flex-shrink-0 bg-[#f2f2f2] flex items-center justify-center font-medium text-[#333]"
+              >
+                {val}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right panel — Excel task pane style */}
+        <div className="w-40 bg-white border-l border-[#d0d0d0] flex flex-col" style={{ fontSize: 11 }}>
+          {/* Task pane title */}
+          <div className="bg-[#f2f2f2] border-b border-[#d0d0d0] px-2 py-1.5 flex items-center justify-between">
+            <span className="font-medium text-[#333]">입력 도우미</span>
+            <button className="text-[#888] hover:text-[#333] hover:bg-[#e0e0e0] px-1 leading-none" style={{ fontSize: 13 }}>✕</button>
           </div>
 
-          <div className="mt-auto border-t border-gray-200 pt-3">
-            <div className="text-xs text-gray-500">
-              <div>오류: <span className={errors.size > 0 ? 'text-red-600 font-bold' : 'text-green-600'}>{errors.size}</span></div>
+          {/* Number input section */}
+          <div className="bg-[#f2f2f2] border-b border-[#d0d0d0] px-2 py-1">
+            <span className="font-medium text-[#555]" style={{ fontSize: 10 }}>숫자 입력</span>
+          </div>
+          <div className="p-2">
+            <div className="grid grid-cols-3 gap-1">
+              {[1,2,3,4,5,6,7,8,9].map(n => (
+                <button
+                  key={n}
+                  onClick={() => handleInput(n)}
+                  className={`h-9 border font-medium transition-colors
+                    ${selectedVal === n ? 'bg-[#217346] text-white border-[#1a5c38]' : 'bg-white border-[#d0d0d0] hover:bg-[#e8f0fe] hover:border-[#1a73e8] text-[#333]'}`}
+                  style={{ fontSize: 13 }}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => handleInput(null)}
+              className="w-full h-7 bg-white border border-[#d0d0d0] hover:bg-[#fce8e8] hover:border-[#dc2626] text-[#555] mt-1"
+              style={{ fontSize: 11 }}
+            >
+              지우기 (Del)
+            </button>
+          </div>
+
+          {/* Help section */}
+          <div className="bg-[#f2f2f2] border-t border-b border-[#d0d0d0] px-2 py-1">
+            <span className="font-medium text-[#555]" style={{ fontSize: 10 }}>도움말</span>
+          </div>
+          <div className="p-2 text-[#666] space-y-1" style={{ fontSize: 10 }}>
+            <div>• 화살표: 셀 이동</div>
+            <div>• 1-9: 숫자 입력</div>
+            <div>• Del: 삭제</div>
+            <div>• 메모 모드: 후보 수</div>
+          </div>
+
+          {/* Stats section */}
+          <div className="mt-auto border-t border-[#d0d0d0]">
+            <div className="bg-[#f2f2f2] border-b border-[#d0d0d0] px-2 py-1">
+              <span className="font-medium text-[#555]" style={{ fontSize: 10 }}>통계</span>
+            </div>
+            <div className="p-2 text-[#666] space-y-1" style={{ fontSize: 10 }}>
+              <div>오류: <span className={errors.size > 0 ? 'text-red-600 font-bold' : 'text-[#217346] font-bold'}>{errors.size}</span></div>
               <div>진행: {board.flat().filter(v => v !== null).length}/81</div>
+              <div>시간: {formatTime(timer)}</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Sheet tabs */}
-      <div className="bg-gray-100 border-t border-gray-300 flex items-center px-2 py-0.5 gap-1">
-        <button className="text-xs bg-white border border-gray-400 border-b-white px-3 py-1 -mb-px text-gray-800 font-medium">
+      <div className="bg-[#f2f2f2] border-t border-[#d0d0d0] flex items-center px-2 py-0.5 gap-1">
+        <button className="bg-white border border-[#ababab] border-b-white px-3 py-1 -mb-px text-[#333] font-medium text-xs">
           수도쿠_데이터
         </button>
-        <button className="text-xs text-gray-500 hover:bg-gray-200 px-3 py-1">시트2</button>
-        <button className="text-xs text-gray-500 hover:bg-gray-200 px-3 py-1">통계</button>
-        <span className="ml-2 text-gray-400">+</span>
+        <button className="text-[#555] hover:bg-[#e0e0e0] px-3 py-1 text-xs">시트2</button>
+        <button className="text-[#555] hover:bg-[#e0e0e0] px-3 py-1 text-xs">통계</button>
+        <span className="ml-2 text-[#888] text-sm cursor-pointer hover:bg-[#e0e0e0] px-1">+</span>
       </div>
 
-      {/* Status bar */}
-      <div className="bg-blue-800 text-white px-3 py-0.5 flex items-center justify-between text-xs">
-        <div className="flex gap-4">
+      {/* Status bar — Excel green */}
+      <div className="bg-[#217346] text-white px-3 py-0.5 flex items-center justify-between text-xs">
+        <div className="flex gap-3 items-center">
           <span>준비</span>
-          {selected && <span>셀: {COLS[selected[1]]}{selected[0] + 1}</span>}
-        </div>
-        <div className="flex gap-4">
+          {selected && <span>셀: {COLS[selected[1]]}{selected[0] + 4}</span>}
+          <span>|</span>
           <span>난이도: {difficulty}</span>
-          <span>경과 시간: {formatTime(timer)}</span>
-          <span>Num Lock</span>
+        </div>
+        <div className="flex gap-3 items-center">
+          <span>{formatTime(timer)}</span>
+          <span>|</span>
+          {/* Sheet view icons */}
+          <span className="opacity-80">▤</span>
+          <span className="opacity-80">⊞</span>
+          <span className="opacity-80">⊟</span>
+          <span>|</span>
+          <span>100%</span>
+          <span className="opacity-60">—●—</span>
         </div>
       </div>
 
       {/* Completion modal */}
       {isComplete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white border border-gray-300 shadow-xl p-6 max-w-sm w-full text-center">
+          <div className="bg-white border border-[#d0d0d0] shadow-xl p-6 max-w-sm w-full text-center">
             <div className="text-4xl mb-3">🎉</div>
-            <h2 className="text-lg font-bold text-gray-800 mb-2">수도쿠 완성!</h2>
-            <p className="text-sm text-gray-600 mb-1">클리어 시간: <strong>{formatTime(timer)}</strong></p>
-            <p className="text-xs text-gray-400 mb-4">오류 없이 완벽하게 해결하셨습니다.</p>
+            <h2 className="font-bold text-[#333] mb-2" style={{ fontSize: 18 }}>수도쿠 완성!</h2>
+            <p className="text-[#555] mb-1" style={{ fontSize: 13 }}>클리어 시간: <strong>{formatTime(timer)}</strong></p>
+            <p className="text-[#888] mb-4" style={{ fontSize: 11 }}>오류 없이 완벽하게 해결하셨습니다.</p>
             <div className="flex gap-2 justify-center">
-              <button
-                onClick={newGame}
-                className="px-4 py-2 bg-blue-800 text-white text-sm hover:bg-blue-900"
-              >
+              <button onClick={newGame} className="px-4 py-2 bg-[#217346] text-white hover:bg-[#1a5c38]" style={{ fontSize: 13 }}>
                 새 게임
               </button>
-              <Link href="/" className="px-4 py-2 border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">
+              <Link href="/" className="px-4 py-2 border border-[#d0d0d0] text-[#333] hover:bg-[#f2f2f2]" style={{ fontSize: 13 }}>
                 포털로 이동
               </Link>
             </div>
