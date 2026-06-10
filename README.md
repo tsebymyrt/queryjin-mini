@@ -1,31 +1,55 @@
-# 김진희 | 데이터 분석 엔지니어
-이 리포지토리는 Netlify로 개인 포트폴리오를 배포하기 위한 레포입니다. 
-데이터 기반 의사결정을 이끌어내는 데 필요한 역량과 프로젝트들을 한눈에 확인할 수 있도록 포트폴리오를 구성하였습니다.  
-분석, 자동화, 시각화에 기반한 실무 경험을 담았으며, 이력서와 프로젝트 소개를 한 사이트에 담은 형태입니다.
+# 미니게임천국
 
-## 🔗 배포 링크
+> 업무 화면으로 위장한 미니게임 포털
+
+직장인처럼 보이지만 사실은 게임 중. 엑셀, 구글 시트, VS Code 화면 속에 숨겨진 미니게임들을 즐겨보세요.
+
+## 배포
+
 👉 [https://queryjin.netlify.app](https://queryjin.netlify.app)
 
-## 🔍 주요 콘텐츠
-- **자기소개**: 데이터 분석가로서의 문제 해결 방식과 관심 분야
-- **이력서**: 주요 경력, 보유 기술, 업무 경험 요약
-- **프로젝트 소개**: 실제 수행한 분석 및 자동화 사례 정리
-- **연락처**: 이메일, GitHub 등
+## 게임 목록
 
-## 📁 파일 구성
-- `index.html` : 포트폴리오 메인 페이지
-- `css/style.css` : 디자인 스타일 정의
-- `images/` : 이미지 파일 모음 (옵션)
-- `resume.pdf` : 이력서 다운로드용 파일 (옵션)
+| 위장 화면 | 실제 게임 |
+|-----------|-----------|
+| Excel 스프레드시트 | 스도쿠 |
+| Google Sheets | 테트리스 |
+| VS Code 에디터 | 영문 추리게임 (범인 찾기) |
+| 준비 중... | (추가 예정) |
 
-## 🛠 기술 스택
-- Python (데이터 처리 및 자동화)
-- SQL (MySQL, BigQuery 기반 쿼리 분석)
-- HTML/CSS (웹 포트폴리오 구성)
-- Google Analytics, GTM 연동 분석 경험
+## 기술 스택
 
-## 👩‍💻 작성자 소개
-김진희 / 데이터 분석 엔지니어  
-이커머스 데이터 기반의 고객 분석, 마케팅 성과 추적, 자동화된 리포트 시스템 구축 경험을 보유하고 있습니다. 코드와 데이터, 그리고 인사이트 사이의 연결을 중요하게 생각합니다.
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **DB / 로그**: Supabase (PostgreSQL)
+- **배포**: Netlify
 
-> 이 포트폴리오는 단순한 웹사이트가 아닌, 하나의 실무 요약서로서 작성되었습니다. 불필요한 포장 없이, 실제 수행했던 일들을 중심으로 구성했습니다.
+## 로컬 실행
+
+```bash
+npm install
+# .env.local 파일 생성 후 Supabase 환경변수 입력 (.env.local.example 참고)
+npm run dev
+```
+
+## 환경변수
+
+`.env.local.example`을 참고해 `.env.local` 파일을 만드세요.
+
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
+## DB 설정
+
+`supabase/schema.sql`을 Supabase SQL Editor에서 실행하면 테이블과 RLS 정책이 생성됩니다.
+
+## 로그 확인
+
+`/admin/logs` 에서 게임별 접속 기록을 확인할 수 있습니다.
+
+## 게임 추가 방법
+
+1. `app/games/<게임명>/page.tsx` 생성
+2. `app/page.tsx` 허브 화면에 `GameCard` 추가
+3. `lib/logger.ts`의 `logGameEvent()` 호출로 로그 연동
